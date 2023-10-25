@@ -1,0 +1,145 @@
+---
+title: 'Proyecto módulo 2: Análisis Exploratorio'
+author: "Econ. Belén. MSR"
+date: "2023-10-24"
+output: github_document
+---
+```{r librerias, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+options(repos = "https://cran.rstudio.com")
+library(openxlsx)
+library(ggplot2)
+library(reshape2)
+library(lubridate)
+library(dplyr)
+install.packages("gganimate", lib = "C:/Users/Ma. Belén Aráuz/AppData/Local/R/win-library/4.3/gganimate")
+library(gganimate)
+install.packages("animation")
+library(animation)
+install.packages("dygraphs")
+library(dygraphs)
+install.packages("forecast")
+library(forecast)
+
+```
+
+```{r basedatos, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+datos <- read.xlsx("C:\\Users\\Ma. Belén Aráuz\\Desktop\\PROGRAMA_CIENCIA DE DATOS\\MÓDULO 2\\BC_ECUADOR.xlsx", sheet = "Hoja1", detectDates = T)
+
+datos1 <- datos %>%
+  mutate(anio=year(datos$Periodo),
+         mes=month(datos$Periodo)) %>%
+  select(anio,mes,everything()) %>%
+  select(-Periodo,-IMPORTACIONES,-Expo_Petroleras,-Expo_No_petroleras,-Impo_Petroleras,-Impo_No_petroleras,-BALANZA_COMERCIAL,-BC_Petrolera,-BC_No_petrolera)
+
+magrupados <- melt(datos1,
+                   id.vars = c("anio","mes"))
+
+```
+
+Realiza un boxplot usando ggplot2, de UNA de las variables que hayas descargado:
+
+```{r boxplot, include=TRUE, fig.width=8,fig.height=8, fig.align='center'}
+knitr::opts_chunk$set(echo = TRUE)
+
+ggplot(magrupados,
+       aes(x=factor(anio),y=value,fill=variable))+
+  geom_boxplot()+ facet_wrap(~variable,scale="free")+
+  geom_jitter(width = 0.1, alpha=0.2,aes(color=variable))+
+  theme(legend.position = "bottom",
+        axis.text.x = element_text(angle = 90,hjust = 1))
+
+
+```
+
+Realiza un gráfico de barras NO apiladas para 2 variables que tengan sentido analizar:
+
+```{r barrasnoapiladas, include=TRUE, fig.width=8,fig.height=8, fig.align='center'}
+knitr::opts_chunk$set(echo = TRUE)
+
+datos2 <- datos %>%
+  mutate(anio=year(datos$Periodo),
+         mes=month(datos$Periodo)) %>%
+  select(anio,mes,everything()) 
+
+datosagrupados <- datos2 %>%
+  filter(mes<=tail(datos2$mes,n=1)) %>%
+  select(-Periodo,-Expo_Petroleras,-Expo_No_petroleras,-Impo_Petroleras,-Impo_No_petroleras,-BALANZA_COMERCIAL,-BC_Petrolera,-BC_No_petrolera) %>%
+  mutate(anio=as.numeric(anio)) %>%
+  group_by(anio) %>%
+  summarise_each(list(sum))
+  
+datosagrupados <- round(datosagrupados,0)
+
+ggplot(data=datosagrupados)+
+  aes(x=anio,y=EXPORTACIONES)+
+  geom_bar(position = "dodge",stat = "identity")+
+  geom_text(aes(label=EXPORTACIONES),vjust=0,color="black",size=5)+
+  labs(title = "Evolución de las Exportaciones del Ecuador",
+       subtitle = "En millones de USD/ Acum: Ene-Ago",
+       caption = "Fuente: BCE \n Elaboración: Belén A.")
+
+ggplot(data=datosagrupados)+
+  aes(x=anio,y=IMPORTACIONES)+
+  geom_bar(position = "dodge",stat = "identity")+
+  geom_text(aes(label=IMPORTACIONES),vjust=0,color="black",size=5)+
+  labs(title = "Evolución de las Importaciones del Ecuador",
+       subtitle = "En millones de USD/ Acum: Ene-Ago",
+       caption = "Fuente: BCE \n Elaboración: Belén A.")
+
+
+```
+
+Escoge 2 variables y realiza un gráfico de líneas en dos cuadros (usando facet). Este gráfico debe incorporar la linea de tendencia para las dos variables.
+
+```{r graficolinea, include=TRUE,fig.width=8,fig.height=8, fig.align='center',results='asis'}
+knitr::opts_chunk$set(echo = TRUE)
+
+datos3 <- datos2 %>%
+  select(Periodo,EXPORTACIONES,IMPORTACIONES)
+
+magrupados2 <- melt(datos3,
+                   id.vars = c("Periodo"))
+
+ggplot(data=magrupados2,aes(x=Periodo,y=value))+
+  geom_line()+facet_wrap(.~variable  ,scales = "free")+
+  geom_smooth(se=FALSE, method="lm", formula=y~1, colour="black") 
+
+```
+
+Prueba generando un gráfico usando dygraphs o plotly
+
+```{r dygraph, include=TRUE,fig.width=8,fig.height=8, fig.align='center',results='asis'}
+knitr::opts_chunk$set(echo = TRUE)
+
+datos4 <- datos2 %>%
+  select(EXPORTACIONES,IMPORTACIONES)
+
+tsdatos <- ts(datos4,start = c(2021,1),frequency = 12)
+
+dygraph(tsdatos,main="Evolución de Balanza Comercial de Ecuador",
+        xlab="Periodo",ylab="En millones de USD") %>%
+  dyOptions(fillGraph=T,fillAlpha=0.04,drawPoints=T,pointSize=3)
+
+```
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
